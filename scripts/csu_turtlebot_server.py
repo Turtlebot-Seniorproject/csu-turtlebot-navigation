@@ -5,7 +5,7 @@ import actionlib
 import csu_constants
 
 
-class CSU_Turtlebot_Server():
+class CSU_Turtlebot_Server(wx.Frame):
     
     def __init__(self, parent, *args, **kwargs):
         self._ac = actionlib.SimpleActionClient('csu_turtlebot_actions', CSUTurtlebotAction)
