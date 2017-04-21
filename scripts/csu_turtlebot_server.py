@@ -49,4 +49,4 @@ if __name__ == '__main__':
     rospy.init_node('csu_turtlebot_server')
     app = wx.App()
     socket_listener = CSU_Turtlebot_Server()
-    app.MainLoop
+    app.MainLoop()
