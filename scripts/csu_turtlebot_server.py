@@ -5,15 +5,16 @@ import wx
 import socket
 import actionlib
 import csu_constants
+from csu_turtlebot_navigation.msg import *
 
 
 class CSU_Turtlebot_Server(wx.Frame):
     
     def __init__(self, parent, *args, **kwargs):
         self._ac = actionlib.SimpleActionClient('csu_turtlebot_actions', CSUTurtlebotAction)
-	self._ac.wait_for_server()
+	    self._ac.wait_for_server()
 
-	self.gTB = CSUTurtlebotGoal()
+	    self.gTB = CSUTurtlebotGoal()
 
         self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serversocket.bind(('', 10888))
