@@ -31,33 +31,21 @@ class CSU_TurtlebotGUI(wx.Frame):
 
 	def TurtlebotGUI(self):
 		#Set Values
-		#self.iBG = 1
 		self.iTB = 1
 		self.moving = False
 
 		#Package Path
-		self.pkg_path = '/home/turtlebot/turtlebot_ws/src/csu_turtlebot_navigation'
+		self.pkg_path = '/home/tp2a/catkin_ws/src/csu_turtlebot_navigation'
 
 		#Create Panel
 		self.panel = wx.Panel(self)
 		self.panel.SetBackgroundColour('white')
 
 		#Video Timers
-		#self.vt_BG = wx.Timer(self)
-		#self.vt_BG.Start(37)		# 27 changes per second
-
 		self.vt_Turtlebot = wx.Timer(self)
 		self.vt_Turtlebot.Start(5000)		# 1 change per 5 seconds
-
-		#Sounds
-		self.odoor = wx.media.MediaCtrl(self.panel, szBackend=wx.media.MEDIABACKEND_GSTREAMER)
-		self.odoor.Load('/home/turtlebot/turtlebot_ws/src/csu_turtlebot_navigation/Sound/OpenDoor.mp3')
-
-		self.inten = wx.media.MediaCtrl(self.panel, szBackend=wx.media.MEDIABACKEND_GSTREAMER)
-		self.inten.Load(self.pkg_path+'/Sound/In10sec.mp3')
 		
 		#Create Image Widgets
-		#convIMG_BG = wx.Bitmap('./Video/BG/BG1.jpg', wx.BITMAP_TYPE_ANY)
 		convIMG_CSU = wx.Bitmap(self.pkg_path+'/scripts/Images/CSU.png', wx.BITMAP_TYPE_ANY)
 		convIMG_Turtlebot = wx.Bitmap(self.pkg_path+'/scripts/Images/Turtlebot.png', wx.BITMAP_TYPE_ANY)
 
@@ -67,26 +55,21 @@ class CSU_TurtlebotGUI(wx.Frame):
 
 		#Create Interactive/Selection Widgets
 		building_text = wx.StaticText(self.panel, label='Campus Building:')
-		#building_text.SetForegroundColour('white')
 		self.building_sel = wx.ComboBox(self.panel, choices=csu_locations.getBuildings())
 
 		type_text = wx.StaticText(self.panel, label='Search by:')
-		#type_text.SetForegroundColour('white')
 		self.type_sel = wx.ComboBox(self.panel, choices=[])
 		self.type_sel.Enable(False)
 
 		location_text = wx.StaticText(self.panel, label='Location:')
-		#location_text.SetForegroundColour('white')
 		self.location_sel = wx.ComboBox(self.panel, choices=[])
 		self.location_sel.Enable(False)
 
 		self.status_text = wx.StaticText(self.panel, label='Welcome to CSU Turtlebot Navigation!')
-		#self.status_text.SetForegroundColour('white')
 
 		self.go = wx.Button(self.panel, label='Go!')
 
 		self.inst_text = wx.StaticText(self.panel, label='~ Tap the touchpad to stop the Turtlebot ~')
-		#self.inst_text.SetForegroundColour('white')
 		self.inst_text.Hide()
 
 		self.cont = wx.Button(self.panel, label='Continue')
@@ -140,13 +123,11 @@ class CSU_TurtlebotGUI(wx.Frame):
 		pBox.AddStretchSpacer(prop=1)
 
 		#Events
-		#self.Bind(wx.EVT_TIMER, self.OnPlayBG, self.vt_BG)
 		self.Bind(wx.EVT_TIMER, self.OnPlayTB, self.vt_Turtlebot)
 		self.building_sel.Bind(wx.EVT_COMBOBOX, self.OnBuildingSel)
 		self.type_sel.Bind(wx.EVT_COMBOBOX, self.OnTypeSel)
 		self.go.Bind(wx.EVT_BUTTON, self.OnGoSel)
 		self.panel.Bind(wx.EVT_LEFT_DOWN, self.OnTapSel)
-		#self.IMG_BG.Bind(wx.EVT_LEFT_DOWN, self.OnTapSel)
 		self.IMG_CSU.Bind(wx.EVT_LEFT_DOWN, self.OnTapSel)
 		self.IMG_Turtlebot.Bind(wx.EVT_LEFT_DOWN, self.OnTapSel)
 		self.cont.Bind(wx.EVT_BUTTON, self.OnContSel)
@@ -155,14 +136,6 @@ class CSU_TurtlebotGUI(wx.Frame):
 		#Set Panel
 		self.panel.SetSizer(pBox)
 		self.panel.Layout()
-
-	#def OnPlayBG(self, event):
-		#self.iBG += 1
-		#convIMG_BG = wx.Image('/home/tp2a/ros/Turtlebot GUI/Video/BG/BG'+str(self.iBG)+'.jpg', wx.BITMAP_TYPE_ANY)
-		#self.IMG_BG.SetBitmap(wx.BitmapFromImage(convIMG_BG))
-		#self.panel.Refresh()
-		#if self.iBG == 324:
-			#self.iBG = 0
 
 	def OnBuildingSel(self, event):
 		types = csu_locations.getTypes(self.building_sel.GetValue())
@@ -175,7 +148,6 @@ class CSU_TurtlebotGUI(wx.Frame):
 		self.location_sel.SetItems(locations)
 
 	def OnGoSel(self, event):
-		self.odoor.Play()
 		building_value = self.building_sel.GetValue()
 		type_value = self.type_sel.GetValue()
 		location_value = self.location_sel.GetValue()
@@ -237,12 +209,10 @@ class CSU_TurtlebotGUI(wx.Frame):
 			self.iTB = 0
 
 	def setGoTo(self):
-		self.gTB.posX = self.locXY['x']
-		self.gTB.posY = self.locXY['y']
-		self.gTB.oriZ = self.locXY['z']
-		self.gTB.oriW = self.locXY['w']
+		self.gTB.goto = self.locXY
 
 		self.gTB.dXY = [456, 337]
+		#self.gTB.dXY = [1353, 413]
 		self._ac.send_goal(self.gTB)
 
 	def setWait(self):
