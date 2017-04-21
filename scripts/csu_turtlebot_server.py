@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import rospy
 import wx
 import socket
