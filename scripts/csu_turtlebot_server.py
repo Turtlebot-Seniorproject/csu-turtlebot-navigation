@@ -11,9 +11,9 @@ class CSU_Turtlebot_Server(wx.Frame):
     
     def __init__(self, parent, *args, **kwargs):
         self._ac = actionlib.SimpleActionClient('csu_turtlebot_actions', CSUTurtlebotAction)
-		self._ac.wait_for_server()
+	self._ac.wait_for_server()
 
-		self.gTB = CSUTurtlebotGoal()
+	self.gTB = CSUTurtlebotGoal()
 
         self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serversocket.bind(('', 10888))
@@ -41,5 +41,5 @@ class CSU_Turtlebot_Server(wx.Frame):
 if __name__ == '__main__':
     rospy.init_node('csu_turtlebot_server')
     app = wx.App()
-    socket_listener = CSU_Turtlebot_Server()
+    socket_listener = CSU_Turtlebot_Server(None)
     app.MainLoop()
