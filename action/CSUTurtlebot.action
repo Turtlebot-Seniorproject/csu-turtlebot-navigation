@@ -1,8 +1,5 @@
 #GoTo
-int32 posX
-int32 posY
-float32 oriZ
-float32 oriW
+int32[] goto
 
 #Wait
 string wait
