@@ -1,0 +1,5 @@
+int64 mapX
+int64 mapY
+string wait
+---
+string state
