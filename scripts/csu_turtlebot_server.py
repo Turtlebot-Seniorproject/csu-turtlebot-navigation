@@ -12,16 +12,16 @@ class CSU_Turtlebot_Server(wx.Frame):
     
     def __init__(self, parent, *args, **kwargs):
         self._ac = actionlib.SimpleActionClient('csu_turtlebot_actions', CSUTurtlebotAction)
-	    self._ac.wait_for_server()
+	self._ac.wait_for_server()
 
-	    self.gTB = CSUTurtlebotGoal()
+	self.gTB = CSUTurtlebotGoal()
 
         self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serversocket.bind(('', 10888))
         self.serversocket.listen(1)
 
         while True:
-            c, addr = serversocket.accept()
+            c, addr = self.serversocket.accept()
             print("Connection established from " + repr(addr[1]))
 
             c.send("Connection established")
@@ -29,11 +29,12 @@ class CSU_Turtlebot_Server(wx.Frame):
             if room_name == "ERROR: No Room Name":
                 print "No room sent, check the client"
             else:
-                send_command(room_name, ac, gTB)
+                self.send_command(room_name, ac, gTB)
                 c.close()
 
 
     def send_command(room_name, ac, turtlebot_goal):
+	print "I expect this will not work, but if you see this message it worked"
         location_xy = csu_constants.ROOM_DICTIONARY[room_name]
         turtlebot_goal.locX = location_xy['x']
         turtlebot_goal.locY = location_xy['y']
