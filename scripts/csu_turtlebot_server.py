@@ -19,13 +19,6 @@ class CSU_Turtlebot_Server(wx.Frame):
         self.serversocket.bind(('', 10888))
         self.serversocket.listen(1)
 
-    def start_server():
-         #1 connection at a time
-
-        ac = actionlib.SimpleActionClient('csu_turtlebot_actions', CSUTurtlebotAction)
-        ac.wait_for_server()
-        turtlebot_goal = CSUTurtlebotGoal()
-
         while True:
             c, addr = serversocket.accept()
             print("Connection established from " + repr(addr[1]))
@@ -35,7 +28,7 @@ class CSU_Turtlebot_Server(wx.Frame):
             if room_name == "ERROR: No Room Name":
                 print "No room sent, check the client"
             else:
-                send_command(room_name, ac, turtlebot_goal)
+                send_command(room_name, ac, gTB)
                 c.close()
 
 
