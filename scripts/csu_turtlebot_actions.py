@@ -130,12 +130,6 @@ class CSU_TurtlebotActions(wx.Frame):
 		self.cpos, self.crot = self.listener.lookupTransform('/map', '/base_link', self.lct)
 				
 		for name, door in csu_constants.ROOM_DICTIONARY.iteritems():
-			print name
-			print door
-			print "-"
-			print self.nearest_name
-			print "---"
-
 			#Calculate door position
 			self.dposX = (door[0]*self.mpp)-self.originX
 			self.dposY = ((self.mapDimY-door[1])*self.mpp)-self.originY
@@ -146,11 +140,12 @@ class CSU_TurtlebotActions(wx.Frame):
 			if self.dist < self.nearest:
 				self.nearest = self.dist
 				print "---"
-				print self.nearest
 				self.npos = self.dpos
 				print self.npos
-				print "---"
 				self.nearest_name = name
+				print self.nearest_name
+				print self.nearest
+				print "---"
 
 		#if self.dwait == 0:		
 		#	print self.dist

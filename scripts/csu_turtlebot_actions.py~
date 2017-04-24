@@ -130,12 +130,6 @@ class CSU_TurtlebotActions(wx.Frame):
 		self.cpos, self.crot = self.listener.lookupTransform('/map', '/base_link', self.lct)
 				
 		for name, door in csu_constants.ROOM_DICTIONARY.iteritems():
-			print name
-			print door
-			print "-"
-			print self.nearest_name
-			print "---"
-
 			#Calculate door position
 			self.dposX = (door[0]*self.mpp)-self.originX
 			self.dposY = ((self.mapDimY-door[1])*self.mpp)-self.originY
@@ -146,21 +140,22 @@ class CSU_TurtlebotActions(wx.Frame):
 			if self.dist < self.nearest:
 				self.nearest = self.dist
 				print "---"
-				print self.nearest
 				self.npos = self.dpos
 				print self.npos
-				print "---"
 				self.nearest_name = name
+				print self.nearest_name
+				print self.nearest
+				print "---"
 
 		#if self.dwait == 0:		
 		#	print self.dist
 
 		#Door initially closed
-		if self.dist > 1.5:
+		if self.nearest > 1.5:
 			self.dopen = False
 
 		#Wait for door to open
-		if self.dist < 1.5 and self.dopen == False and self.goto != self.npos: #and self.npos[3] == 1:
+		if self.nearest < 1.5 and self.dopen == False and self.goto != self.npos and self.npos[3] == 1:
 			if self.dwait == 0:
 				self._ac.cancel_all_goals()
 				self.open_door.Play()
@@ -173,7 +168,7 @@ class CSU_TurtlebotActions(wx.Frame):
 				self.dwait = 0
 
 		#Reposition and face the destination
-		if self.dist < 3.0 and self.goto == self.npos and self._ac.get_state() == GoalStatus.ACTIVE:
+		if self.nearest < 3.0 and self.goto == self.npos and self._ac.get_state() == GoalStatus.ACTIVE:
 			if self.gTB.goto[2] == 0 and self.cpos[0] > self.npos[0]:
 				self.gMB.target_pose.pose.position.x = self.gotoX+1.5
 				self.gMB.target_pose.pose.orientation.z = self.zL
