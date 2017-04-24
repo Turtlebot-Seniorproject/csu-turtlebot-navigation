@@ -12,9 +12,9 @@ class CSU_Turtlebot_Server(wx.Frame):
     
     def __init__(self, parent, *args, **kwargs):
         self._ac = actionlib.SimpleActionClient('csu_turtlebot_actions', CSUTurtlebotAction)
-	self._ac.wait_for_server()
+	    self._ac.wait_for_server()
 
-	self.gTB = CSUTurtlebotGoal()
+	    self.gTB = CSUTurtlebotGoal()
 
         self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serversocket.bind(('', 10888))
@@ -26,19 +26,21 @@ class CSU_Turtlebot_Server(wx.Frame):
 
             c.send("Connection established")
             room_name = c.recv(10888)
-            if room_name == "ERROR: No Room Name":
+            # do some real validation here
+            if room_name == "ERROR":
                 print "No room sent, check the client"
+            elif: room_name == "WAIT":
+                self.gTB.wait = 'true'
+                self._ac.send_goal(self.gTB)
+                self.gTB.wait = 'false'
             else:
-                self.send_command(room_name, ac, gTB)
-                c.close()
+                self.send_command()
 
 
-    def send_command(room_name, ac, turtlebot_goal):
-	print "I expect this will not work, but if you see this message it worked"
-        location_xy = csu_constants.ROOM_DICTIONARY[room_name]
-        turtlebot_goal.locX = location_xy['x']
-        turtlebot_goal.locY = location_xy['y']
-        ac.send_goal(turtlebot_goal)
+    def send_command():
+	    print "I expect this will not work, but if you see this message it worked"
+        self.gTB.goto = csu_constants.ROOM_DICTIONARY[room_name]
+        self._ac.send_goal(turtlebot_goal)
 
 if __name__ == '__main__':
     rospy.init_node('csu_turtlebot_server')

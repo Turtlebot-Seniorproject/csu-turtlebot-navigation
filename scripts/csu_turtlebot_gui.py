@@ -211,8 +211,6 @@ class CSU_TurtlebotGUI(wx.Frame):
 	def setGoTo(self):
 		self.gTB.goto = self.locXY
 
-		self.gTB.dXY = [456, 337]
-		#self.gTB.dXY = [1353, 413]
 		self._ac.send_goal(self.gTB)
 
 	def setWait(self):
