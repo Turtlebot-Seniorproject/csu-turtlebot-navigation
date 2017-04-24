@@ -35,7 +35,7 @@ class CSU_TurtlebotGUI(wx.Frame):
 		self.moving = False
 
 		#Package Path
-		self.pkg_path = '/home/tp2a/catkin_ws/src/csu_turtlebot_navigation'
+		self.pkg_path = '/home/turtlebot/turtlebot_ws/src/csu_turtlebot_navigation'
 
 		#Create Panel
 		self.panel = wx.Panel(self)

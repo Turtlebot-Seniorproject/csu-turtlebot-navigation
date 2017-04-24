@@ -14,6 +14,7 @@ import math
 import rospy
 import actionlib
 import tf
+import csu_constants
 from std_srvs.srv import *
 from actionlib_msgs.msg import *
 from move_base_msgs.msg import *
@@ -39,7 +40,7 @@ class CSU_TurtlebotActions(wx.Frame):
 		#self.tp = PoseWithCovarianceStamped()
 
 		#Package Path
-		self.pkg_path = '/home/tp2a/catkin_ws/src/csu_turtlebot_navigation'
+		self.pkg_path = '/home/turtlebot/turtlebot_ws/src/csu_turtlebot_navigation'
 
 		wx.Frame.__init__(self, parent, *args, **kwargs)
 
@@ -76,10 +77,13 @@ class CSU_TurtlebotActions(wx.Frame):
 		#Door status
 		self.clear, self.dwait = 0, 0
 		self.dopen = False
+		self.nearest = 1000
+		self.npos = [0, 0, 0, 0]
+		self.nearest_name = "no nearest yet"
 
 		#Action message
 		self.gTB = req
-		
+
 		#Turtlebot waits
 		if self.gTB.wait == 'true':
 			self._ac.cancel_all_goals()
@@ -124,24 +128,39 @@ class CSU_TurtlebotActions(wx.Frame):
 		#Get current turtlebot position
 		self.lct = self.listener.getLatestCommonTime('/map', '/base_link')
 		self.cpos, self.crot = self.listener.lookupTransform('/map', '/base_link', self.lct)
+				
+		for name, door in csu_constants.ROOM_DICTIONARY.iteritems():
+			print name
+			print door
+			print "-"
+			print self.nearest_name
+			print "---"
 
-		#Calculate door position
-		self.dposX = (self.gTB.dXY[0]*self.mpp)-self.originX
-		self.dposY = ((self.mapDimY-self.gTB.dXY[1])*self.mpp)-self.originY
-		self.dpos = [self.dposX, self.dposY]
+			#Calculate door position
+			self.dposX = (door[0]*self.mpp)-self.originX
+			self.dposY = ((self.mapDimY-door[1])*self.mpp)-self.originY
+			self.dpos = [self.dposX, self.dposY, door[2], door[3]]
+			
+			#Calculate distance between current position and door position
+			self.dist = math.sqrt((self.cpos[0]-self.dpos[0])**2 + (self.cpos[1]-self.dpos[1])**2)
+			if self.dist < self.nearest:
+				self.nearest = self.dist
+				print "---"
+				print self.nearest
+				self.npos = self.dpos
+				print self.npos
+				print "---"
+				self.nearest_name = name
 
-		#Calculate distance between current position and door position
-		self.dist = math.sqrt((self.cpos[0]-self.dpos[0])**2 + (self.cpos[1]-self.dpos[1])**2)
-
-		if self.dwait == 0:		
-			print self.dist
+		#if self.dwait == 0:		
+		#	print self.dist
 
 		#Door initially closed
-		if self.dist > 1.5:
+		if self.nearest > 1.5:
 			self.dopen = False
 
 		#Wait for door to open
-		if self.dist < 1.5 and self.dopen == False and self.goto != self.dpos:
+		if self.nearest < 1.5 and self.dopen == False and self.goto != self.npos and self.npos[3] == 1:
 			if self.dwait == 0:
 				self._ac.cancel_all_goals()
 				self.open_door.Play()
@@ -154,20 +173,20 @@ class CSU_TurtlebotActions(wx.Frame):
 				self.dwait = 0
 
 		#Reposition and face the destination
-		if self.dist < 3.0 and self.goto == self.dpos and self._ac.get_state() == GoalStatus.ACTIVE:
-			if self.gTB.goto[2] == 0 and self.cpos[0] > self.dpos[0]:
+		if self.nearest < 3.0 and self.goto == self.npos and self._ac.get_state() == GoalStatus.ACTIVE:
+			if self.gTB.goto[2] == 0 and self.cpos[0] > self.npos[0]:
 				self.gMB.target_pose.pose.position.x = self.gotoX+1.5
 				self.gMB.target_pose.pose.orientation.z = self.zL
 				self.gMB.target_pose.pose.orientation.w = self.wL
-			if self.gTB.goto[2] == 0 and self.cpos[0] < self.dpos[0]:
+			if self.gTB.goto[2] == 0 and self.cpos[0] < self.npos[0]:
 				self.gMB.target_pose.pose.position.x = self.gotoX-1.5
 				self.gMB.target_pose.pose.orientation.z = self.zR
 				self.gMB.target_pose.pose.orientation.w = self.wR
-			if self.gTB.goto[2] == 1 and self.cpos[1] > self.dpos[1]:
+			if self.gTB.goto[2] == 1 and self.cpos[1] > self.npos[1]:
 				self.gMB.target_pose.pose.position.y = self.gotoY+1.5
 				self.gMB.target_pose.pose.orientation.z = self.zT
 				self.gMB.target_pose.pose.orientation.w = self.wT
-			if self.gTB.goto[2] == 1 and self.cpos[1] < self.dpos[1]:
+			if self.gTB.goto[2] == 1 and self.cpos[1] < self.npos[1]:
 				self.gMB.target_pose.pose.position.y = self.gotoY-1.5
 				self.gMB.target_pose.pose.orientation.z = self.zB
 				self.gMB.target_pose.pose.orientation.w = self.wB

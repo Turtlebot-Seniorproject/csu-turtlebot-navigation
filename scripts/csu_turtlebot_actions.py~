@@ -5,12 +5,16 @@
 #Instructor: Shiqi Zhang
 #Group: Adam Thoennes, James Doherty, Steven Eucker, Nicholas Kramer
 
-import wx
+try:
+    import wx
+except ImportError:
+    raise ImportError,"The wxPython module is required to run this program."
 import wx.media
 import math
 import rospy
 import actionlib
 import tf
+import csu_constants
 from std_srvs.srv import *
 from actionlib_msgs.msg import *
 from move_base_msgs.msg import *
@@ -20,9 +24,11 @@ from csu_turtlebot_navigation.msg import *
 class CSU_TurtlebotActions(wx.Frame):
 
 	def __init__(self, parent, *args, **kwargs):
+		#Set action client
 		self._ac = actionlib.SimpleActionClient('move_base', MoveBaseAction)
 		self._ac.wait_for_server()
 
+		#Set action server
 		self._as = actionlib.SimpleActionServer('csu_turtlebot_actions', CSUTurtlebotAction, self.execute, False)
 		self._as.start()
 
@@ -41,12 +47,18 @@ class CSU_TurtlebotActions(wx.Frame):
 		#Create Panel
 		self.panel = wx.Panel(self)
 
-		#Sounds
-		self.odoor = wx.media.MediaCtrl(self.panel, szBackend=wx.media.MEDIABACKEND_GSTREAMER)
-		self.odoor.Load('/home/turtlebot/turtlebot_ws/src/csu_turtlebot_navigation/Sound/OpenDoor.mp3')
+		#Turtlebot Voice
+		self.welcome = wx.media.MediaCtrl(self.panel, szBackend=wx.media.MEDIABACKEND_GSTREAMER)
+		self.open_door = wx.media.MediaCtrl(self.panel, szBackend=wx.media.MEDIABACKEND_GSTREAMER)
+		self.thanks = wx.media.MediaCtrl(self.panel, szBackend=wx.media.MEDIABACKEND_GSTREAMER)
+		self.next_dest = wx.media.MediaCtrl(self.panel, szBackend=wx.media.MEDIABACKEND_GSTREAMER)
+		self.destination = wx.media.MediaCtrl(self.panel, szBackend=wx.media.MEDIABACKEND_GSTREAMER)
 
-		self.inten = wx.media.MediaCtrl(self.panel, szBackend=wx.media.MEDIABACKEND_GSTREAMER)
-		self.inten.Load(self.pkg_path+'/Sound/In10sec.mp3')
+		self.welcome.Load(self.pkg_path+'/scripts/Sound/welcome.mp3')
+		self.open_door.Load(self.pkg_path+'/scripts/Sound/open_door.mp3')
+		self.thanks.Load(self.pkg_path+'/scripts/Sound/thanks.mp3')
+		self.next_dest.Load(self.pkg_path+'/scripts/Sound/next_dest.mp3')
+		self.destination.Load(self.pkg_path+'/scripts/Sound/destination.mp3')
 
 	def execute(self, req):
 		#Map dimensions in pixels
@@ -57,11 +69,22 @@ class CSU_TurtlebotActions(wx.Frame):
 		self.originY = 28.65
 		#Meters per pixel (1.97 inches per pixel)
 		self.mpp = 0.05
-		#Door stats
-		self.dwait = 0
+		#Orientation
+		self.zL, self.wL = 1.0, 0.0
+		self.zR, self.wR = 0.0, 1.0
+		self.zT, self.wT = 0.7, 0.7
+		self.zB, self.wB = -0.7, 0.7
+		#Door status
+		self.clear, self.dwait = 0, 0
+		self.dopen = False
+		self.nearest = 1000
+		self.npos = [0, 0, 0, 0]
+		self.nearest_name = "no nearest yet"
 
+		#Action message
 		self.gTB = req
-		
+
+		#Turtlebot waits
 		if self.gTB.wait == 'true':
 			self._ac.cancel_all_goals()
 			self.dtime.Stop()
@@ -69,59 +92,110 @@ class CSU_TurtlebotActions(wx.Frame):
 			#self.tp.pose.pose.position.x = 12.0
 			#self.tp.pose.pose.orientation.w = 1.0
 			#self.pub.publish(self.tp)
+		#Turtlebot sets destination
 		else:
-			self.odoor.Play()
+			self.welcome.Play()
 			self.clear_costmap()
+
+			#Timer to periodically check door status
 			self.dtime = wx.Timer(self)
 			self.dtime.Start(1000)
 
 			self.Bind(wx.EVT_TIMER, self.checkDoor, self.dtime)
 
 			#Calculate goal position
-			self.gposX = (self.gTB.posX*self.mpp)-self.originX
-			self.gposY = ((self.mapDimY-self.gTB.posY)*self.mpp)-self.originY
+			self.gotoX = (self.gTB.goto[0]*self.mpp)-self.originX
+			self.gotoY = ((self.mapDimY-self.gTB.goto[1])*self.mpp)-self.originY
+			self.goto = [self.gotoX, self.gotoY]
 
 			#Set goal position/orientation
 			self.gMB.target_pose.header.frame_id = '/map'
-			self.gMB.target_pose.pose.position.x = self.gposX
-			self.gMB.target_pose.pose.position.y = self.gposY
-			self.gMB.target_pose.pose.orientation.z = self.gTB.oriZ
-			self.gMB.target_pose.pose.orientation.w = self.gTB.oriW
-			self._ac.send_goal(self.gMB)
+			self.gMB.target_pose.pose.position.x = self.gotoX
+			self.gMB.target_pose.pose.position.y = self.gotoY
+			self.gMB.target_pose.pose.orientation.z = self.zR
+			self.gMB.target_pose.pose.orientation.w = self.wR
+
+			self.clear += 1
 
 		self._as.set_succeeded()
 
 	def checkDoor(self, event):
-		lct = self.listener.getLatestCommonTime('/map', '/base_link')
-		cpos, crot = self.listener.lookupTransform('/map', '/base_link', lct)
+		#Wait for costmap clear
+		if self.clear == 1:
+			self._ac.send_goal(self.gMB)
+			self.clear = 0
 
-		#Calculate door position
-		dposX = (self.gTB.dXY[0]*self.mpp)-self.originX
-		dposY = ((self.mapDimY-self.gTB.dXY[1])*self.mpp)-self.originY
-		dpos = [dposX, dposY]
+		#Get current turtlebot position
+		self.lct = self.listener.getLatestCommonTime('/map', '/base_link')
+		self.cpos, self.crot = self.listener.lookupTransform('/map', '/base_link', self.lct)
+				
+		for name, door in csu_constants.ROOM_DICTIONARY.iteritems():
+			print name
+			print door
+			print "-"
+			print self.nearest_name
+			print "---"
 
-		#Calculate distance between current position and door position
-		dist = math.sqrt((cpos[0]-dpos[0])**2 + (cpos[1]-dpos[1])**2)
+			#Calculate door position
+			self.dposX = (door[0]*self.mpp)-self.originX
+			self.dposY = ((self.mapDimY-door[1])*self.mpp)-self.originY
+			self.dpos = [self.dposX, self.dposY, door[2], door[3]]
+			
+			#Calculate distance between current position and door position
+			self.dist = math.sqrt((self.cpos[0]-self.dpos[0])**2 + (self.cpos[1]-self.dpos[1])**2)
+			if self.dist < self.nearest:
+				self.nearest = self.dist
+				print "---"
+				print self.nearest
+				self.npos = self.dpos
+				print self.npos
+				print "---"
+				self.nearest_name = name
 
-		if self.dwait == 0:		
-			print dist
+		#if self.dwait == 0:		
+		#	print self.dist
 
-		if dist > 1.5:
+		#Door initially closed
+		if self.dist > 1.5:
 			self.dopen = False
 
-		if dist < 1.5 and self.dopen == False:
+		#Wait for door to open
+		if self.dist < 1.5 and self.dopen == False and self.goto != self.npos: #and self.npos[3] == 1:
 			if self.dwait == 0:
 				self._ac.cancel_all_goals()
-				self.odoor.Play()
-				self.inten.Play()
+				self.open_door.Play()
 			self.dwait += 1
 			print self.dwait
 			if self.dwait == 10:
+				self.thanks.Play()
 				self.dopen = True
 				self._ac.send_goal(self.gMB)
 				self.dwait = 0
 
+		#Reposition and face the destination
+		if self.dist < 3.0 and self.goto == self.npos and self._ac.get_state() == GoalStatus.ACTIVE:
+			if self.gTB.goto[2] == 0 and self.cpos[0] > self.npos[0]:
+				self.gMB.target_pose.pose.position.x = self.gotoX+1.5
+				self.gMB.target_pose.pose.orientation.z = self.zL
+				self.gMB.target_pose.pose.orientation.w = self.wL
+			if self.gTB.goto[2] == 0 and self.cpos[0] < self.npos[0]:
+				self.gMB.target_pose.pose.position.x = self.gotoX-1.5
+				self.gMB.target_pose.pose.orientation.z = self.zR
+				self.gMB.target_pose.pose.orientation.w = self.wR
+			if self.gTB.goto[2] == 1 and self.cpos[1] > self.npos[1]:
+				self.gMB.target_pose.pose.position.y = self.gotoY+1.5
+				self.gMB.target_pose.pose.orientation.z = self.zT
+				self.gMB.target_pose.pose.orientation.w = self.wT
+			if self.gTB.goto[2] == 1 and self.cpos[1] < self.npos[1]:
+				self.gMB.target_pose.pose.position.y = self.gotoY-1.5
+				self.gMB.target_pose.pose.orientation.z = self.zB
+				self.gMB.target_pose.pose.orientation.w = self.wB
+			self._ac.send_goal(self.gMB)
+
+		#Destination reached
 		if self._ac.get_state() == GoalStatus.SUCCEEDED:
+			self.destination.Play()
+			#self.next_dest.Play()
 			print 'Success!'
 			self.dtime.Stop()
 

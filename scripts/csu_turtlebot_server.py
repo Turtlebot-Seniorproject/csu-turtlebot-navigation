@@ -12,13 +12,15 @@ class CSU_Turtlebot_Server(wx.Frame):
     
     def __init__(self, parent, *args, **kwargs):
         self._ac = actionlib.SimpleActionClient('csu_turtlebot_actions', CSUTurtlebotAction)
-	    self._ac.wait_for_server()
+	print "wating for ac"
+	self._ac.wait_for_server()
 
-	    self.gTB = CSUTurtlebotGoal()
+	self.gTB = CSUTurtlebotGoal()
 
         self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serversocket.bind(('', 10888))
-        self.serversocket.listen(1)
+	print "I am listening"
+        self.serversocket.listen(5)
 
         while True:
             c, addr = self.serversocket.accept()
@@ -29,18 +31,17 @@ class CSU_Turtlebot_Server(wx.Frame):
             # do some real validation here
             if room_name == "ERROR":
                 print "No room sent, check the client"
-            elif: room_name == "WAIT":
+            elif room_name == "WAIT":
                 self.gTB.wait = 'true'
                 self._ac.send_goal(self.gTB)
                 self.gTB.wait = 'false'
             else:
-                self.send_command()
+                self.send_command(room_name)
 
 
-    def send_command():
-	    print "I expect this will not work, but if you see this message it worked"
+    def send_command(self, room_name="ERROR"):
         self.gTB.goto = csu_constants.ROOM_DICTIONARY[room_name]
-        self._ac.send_goal(turtlebot_goal)
+        self._ac.send_goal(self.gTB)
 
 if __name__ == '__main__':
     rospy.init_node('csu_turtlebot_server')
