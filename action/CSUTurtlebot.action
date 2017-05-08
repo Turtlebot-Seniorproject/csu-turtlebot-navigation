@@ -3,9 +3,6 @@ int32[] goto
 
 #Wait
 string wait
-
-#DoorwayList
-int32[] dXY
 ---
 #Result
 string result
